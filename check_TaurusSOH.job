@@ -1,0 +1,127 @@
+#!/bin/ksh
+
+###########################################################################################
+# MRF - 07-11-2019 - Script per controlar els SOH de les Taurus amb modem.
+#  Rev. 29-11-2019 - Controla la Bateria (V), Mases, GPS i segons certs criteris
+#  Rev. 04-12-2019 - Envia mails d'avis. Per a construir el log necesito tenir acces
+#                    als seguents logs de la Taurus:  GPSTime - EnvironmentSOH - Instrument
+#  Rev. 22-04-2025 - Arreglo el tema de la data al header del mail. Sortiamb amb data del dia
+#                    anterior al cos del correu i correcta al subject.
+#
+#   Usage:  check_TaurusSOH.job network station_code ip
+#
+#           network            2 character code, e.g. YS 
+#           station_code:      3-to-5 character code, e.g. CN01
+#           ip:                IP direction, e.g. 193.146.122.114 or ictja21.eairlink.com
+###########################################################################################
+
+if [[ $# != 3 ]];then
+   echo "Usage: check_TaurusSOH.job network station_code ip"
+   echo "       check_TaurusSOH.job YS CN01 ictja21.eairlink.com"
+   exit 1
+fi
+
+# variables d'enntrada
+net=$1
+sta=$2
+ip=$3
+
+# Destinataris dels mails d'avis
+MailsAvis="mruiz@geo3bcn.csic.es, labsis@geo3bcn.csic.es"
+
+# definicions - Al log SOH de la taurus hi ha un apunt cada 3600s, 1 cada hora.
+duration="3600_s"
+download_string="http://$ip/retrieval/download?dataType=StateOfHealth&dataFormat="
+
+# Creo un directori on anar ficant tots els fitxers intermedis i els logs. Faig un directori per xarxa, i els logs per estacio 
+if [ -d Trash ]; then
+   echo "Dir Trash already exists!"
+else
+   mkdir -v Trash 
+fi
+
+if [ -d Trash/Check_SOH_$net ]; then
+   echo "Dir Trash/Check_SOH_$net already exists!"
+else
+   mkdir -v Trash/Check_SOH_$net
+fi
+
+cd Trash/Check_SOH_$net
+
+# Miro la data actual. Si genero la capcalera del log SOH en aquest punt com feia fins ara, el mail tindra la data malament
+# perque s'envia el correu quan canvia la data, l'endema. Obro amb un Touch un fitxer temporal on anire ficant el logs SOH. 
+# Tambe obro la llista de Log total de backup. Cada cop que canvii la data enviare un mail amb els soh del dia anterior.
+date +%F | read fechaini
+
+# Fer aixo aqui no va be- canvio per touch del fitxer
+#echo -e "$net - $sta\nSOH from $fechaini\n More info: mruiz@geo3bcn.csic.es\n\n   Date       Hour    V    T    M1    M2    M3      Lat       Lon     Z    NSat  GPS-Time-Status   Uncertainty(ns)" > soh.$net.$sta.txt
+touch soh.$net.$sta.temp soh.$net.$sta.tot.lst
+
+# inicio un bucle infinit, guardo la varaible t, per pararlo si em conve.
+count=0
+t=0 
+
+while [ $t -eq 0 ]
+do
+
+  echo "$count + 1" | bc  | read count
+  echo -e "\nLoop Number = $count \n"
+
+# Miro quina hora es ara, sense minuts ni segons (UTC) i li resto una hora per asegurar que el log ja esta creat
+  date +%F%t%k -u | read sdate time
+  echo "$time - 1" | bc  | read timeminus1h
+  stime="$timeminus1h:00:00"
+
+  echo -e "\nDate: $sdate Time: $stime \n"
+
+  if [[ $sdate != $fechaini ]]
+  then
+# Si la data actual es diferent a la inicial, creo la capcalera del mail, l'enganxo a la llista de SOH que he anat creant i envio el mail
+# amb el fitxer complet a la llista de direccions. Reinicio el nou log amb el touch i actualitzo la data inicial. Guardo el log continuo.
+    echo -e "\n   Sending $net - $sta SOH email\n"
+    
+    echo -e "$net - $sta\nSOH from $fechaini\n More info: labsis@geo3bcn.csic.es\n\n   Date       Hour    V    T    M1    M2    M3      Lat       Lon     Z    NSat  GPS-Time-Status   Uncertainty(ns)" > header.$net.$sta.txt
+    cat header.$net.$sta.txt soh.$net.$sta.temp > soh.$net.$sta.txt
+
+    mail <  soh.$net.$sta.txt -s 'SOH '$net'_'$sta' - '$fechaini' '  $MailsAvis
+    
+# Guardo els SOH de la Taurus en un ficher continuo abans de reiniciar el del dia, aixi puc esborrar la CF si es fica en enviar dades passades
+# i tinc copia de les metadades per a la web, encara que sigui cad 6h, ja es suficient.
+    cat soh.$net.$sta.temp >> soh.$net.$sta.tot.lst
+
+# Netejo fitxers intermedis i torno a comecar    
+    rm -fv header.$net.$sta.txt soh.$net.$sta.txt soh.$net.$sta.temp
+
+# Idem: fer això aqui fa queels mails tingui data erronia, canvio per touch del ficher pera obrir-lo
+#    echo -e "$net - $sta\nSOH from $fechaini\n More info: mruiz@geo3bcn.csic.es\n\n   Date       Hour    V    T    M1    M2    M3      Lat       Lon     Z    NSat  GPS-Time-Status   Uncertainty(ns)" > soh.$net.$sta.txt
+    touch soh.$net.$sta.temp
+    fechaini=$sdate
+  else 
+# Si la data actual es igual a la anterior, inicio o continuo l'extraccio dels SOH i omplint el fitxer de SOH
+    echo  "Extracting state-of-health (SOH) information from $net - $sta ... "
+
+# Extract GPSTime EnvironmentSOH Instrument csv files - Atencio amb els espais als noms de les variables!
+    wget -O GPSTime_$sta.csv "${download_string}GPS Time&duration=${duration}&startTime=${sdate} ${stime}"
+    wget -O Environment_$sta.csv "${download_string}Environment SOH&duration=${duration}&startTime=${sdate} ${stime}" 
+    wget -O Instrument_$sta.csv "${download_string}Instrument&duration=${duration}&startTime=${sdate} ${stime}"
+
+# Combine information from Instrument, EnvironmentSOH, and GPSTime into a single file
+# Aqui he fet una mica de trampa, tot i demanar el soh d'una hora concreta a vegades treu dues lines, agafo la ultima, que sol ser la correcta....
+    tail -n1 Instrument_$sta.csv | awk -F, '{if ($4 != "") printf("%s %4.1f %4.1f\n",substr($2,1,19),$3/1000,$4);
+                                             if ($4 == "") printf("%s %4.1f %4.1f\n",substr($2,1,19),$3/1000,$5); }' > tmp1.$sta.dat 
+    tail -n1 Environment_$sta.csv | awk -F, '{printf(" %5.2f %5.2f %5.2f\n",$7,$8,$9)}' > tmp2.$sta.dat 
+    tail -n1 GPSTime_$sta.csv | awk -F, '{printf(" %s  %d  %s %s  %s\n",$3,$5,$9,$4,$10)}' > tmp3.$sta.dat 
+
+    paste -d "" tmp1.$sta.dat tmp2.$sta.dat tmp3.$sta.dat >> soh.$net.$sta.temp
+
+    rm -fv tmp1.$sta.dat tmp2.$sta.dat tmp3.$sta.dat GPSTime_$sta.csv Environment_$sta.csv Instrument_$sta.csv wget-log*
+
+# Esperem 6h - chequejem l'estacio 4 cops al dia
+    echo "Waiting ..."
+    sleep 21600
+  fi
+
+# OJO mato el process - nomes tests / debug
+#t=1
+
+done
