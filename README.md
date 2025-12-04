@@ -1,5 +1,5 @@
 # SeismicStations_SOH
-Daily report message with the State of Healt of a remote seismic station connected to internet by modem. Linux mailutils must be installed and configured.
+Daily report message with the State of Health of a remote seismic station connected to internet by modem. Linux mailutils must be installed and configured.
 
 
 - check_CertimusSOH.job
