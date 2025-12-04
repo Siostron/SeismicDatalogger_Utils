@@ -1,5 +1,5 @@
 # SeismicStations_SOH
-Daily report message with the State of Healt of a seismic station
+Daily report message with the State of Healt of a remote seismic station connected to internet by modem. 
 
 - check_CertimusSOH.job
 
