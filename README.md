@@ -29,7 +29,7 @@
   Bash script to retireve  State of Health (SOH) from a Certimus Guralp and send a daily email. We have daily report messages with the SOH of a remote seismic station connected to internet by GPRS modem. Linux mailutils must be installed and configured.
    
 
-  Ex: ./check_CertimusSOH.job YS EP05 80.66.245.191 >& ./Trash/YS_EP05.log &
+  Ex: ./check_CertimusSOH.job YH EP02 80.46.175.91 >& ./Trash/YH_EP02.log &
 <img width="908" height="229" alt="Captura desde 2025-12-05 10-43-06" src="https://github.com/user-attachments/assets/32304d3f-973d-446d-94ae-fad0d3e22285" />
 
 
