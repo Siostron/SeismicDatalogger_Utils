@@ -7,9 +7,9 @@
 
   We use this script with Linux cron:
   
-  crontab -l
-  
-  0 0 1 */6 * /home/ccube-admin/BorrarDatos_CUBE.job > /home/ccube-admin/log 2>&1
+  ``> crontab -l``
+  ``# m h  dom mon dow   command``
+  ``0 0 1 */6 * /home/ccube-admin/BorrarDatos_CUBE.job > /home/ccube-admin/log 2>&1``
 
   
 - # Cube_CCube_Digos/Check_Net_CCUBE.job
@@ -18,9 +18,9 @@
 
   We use this script with Linux cron:
 
-  crontab -l
-  
-  0 * * * * /home/ccube-admin/Check_Net_CCUBE.job > /home/ccube-admin/log_net 2>&1
+  ``> crontab -l``
+  ``# m h  dom mon dow   command``
+  ``0 * * * * /home/ccube-admin/Check_Net_CCUBE.job > /home/ccube-admin/log_net 2>&1``
 
 
 
@@ -29,7 +29,7 @@
   Bash script to retireve  State of Health (SOH) from a Certimus Guralp and send a daily email. We have daily report messages with the SOH of a remote seismic station connected to internet by GPRS modem. Linux mailutils must be installed and configured.
    
 
-  Ex: ./check_CertimusSOH.job YH EP02 80.xx.yyy.91 >& ./Trash/YH_EP02.log &
+  Ex: ``./check_CertimusSOH.job YH EP02 80.xx.yyy.91 >& ./Trash/YH_EP02.log &``
 <img width="908" height="229" alt="Captura desde 2025-12-05 10-43-06" src="https://github.com/user-attachments/assets/32304d3f-973d-446d-94ae-fad0d3e22285" />
 
 
@@ -38,5 +38,5 @@
   Bash script to retireve SOH from a Taurus Nanometrics and send a daily email. We have daily report messages with the SOH of a remote seismic station connected to internet by GPRS modem. Linux mailutils must be installed and configured. Linux mailutils must be installed and configured.
 
 
-  EX: ./check_TaurusSOH.job YH EP21 87.xxx.yyy.245 >& ./Trash/YH_EP21.log &
+  EX: ``./check_TaurusSOH.job YH EP21 87.xxx.yyy.245 >& ./Trash/YH_EP21.log &``
 <img width="845" height="219" alt="Captura desde 2025-12-05 10-41-58" src="https://github.com/user-attachments/assets/19ae7e25-74c1-4a24-b6cf-ba4ff3109be1" />
