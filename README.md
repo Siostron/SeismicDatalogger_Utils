@@ -14,7 +14,7 @@ m h  dom mon dow   command
   
 - # Cube_CCube_Digos/Check_Net_CCUBE.job
 
-When the CCube loses its network connection, it never recovers. We check the connection every hour with a ping and,if we don't get a response, we restart it directly.
+  When the CCube loses its network connection, it never recovers. We check the connection every hour with a ping and,if we don't get a response, we restart it directly.
 
   We use this script with Linux cron:
 
