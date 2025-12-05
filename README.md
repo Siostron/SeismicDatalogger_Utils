@@ -1,5 +1,8 @@
 # SeismicDatallogger_Utils
 
+
+- Cube_CCube_Digos
+
 Daily report message with the State of Health of a remote seismic station connected to internet by modem. Linux mailutils must be installed and configured.
 
 - Certimus_Guralp/check_CertimusSOH.job
@@ -7,6 +10,7 @@ Daily report message with the State of Health of a remote seismic station connec
   Bash script to retireve SOH from a Certimus Guralp and send a daily email. Linux mailutils must be installed and configured.
 
   Ex: ./check_CertimusSOH.job YS EP05 80.66.245.191 >& ./Trash/YS_EP05.log &
+<img width="908" height="229" alt="Captura desde 2025-12-05 10-43-06" src="https://github.com/user-attachments/assets/32304d3f-973d-446d-94ae-fad0d3e22285" />
 
 
 - Taurus_Nanometics/check_TaurusSOH.job
@@ -15,3 +19,4 @@ Daily report message with the State of Health of a remote seismic station connec
 
 
   EX: ./check_TaurusSOH.job YS EP06 87.218.198.245 >& ./Trash/YS_EP06.log &
+<img width="845" height="219" alt="Captura desde 2025-12-05 10-41-58" src="https://github.com/user-attachments/assets/19ae7e25-74c1-4a24-b6cf-ba4ff3109be1" />
