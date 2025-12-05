@@ -22,11 +22,11 @@ crontab -l
 0 * * * * /home/ccube-admin/Check_Net_CCUBE.job > /home/ccube-admin/log_net 2>&1
 
 
-Daily report messages with the State of Health (SOH) of a remote seismic station connected to internet by GPRS modem. Linux mailutils must be installed and configured.
 
 - # Certimus_Guralp/check_CertimusSOH.job
 
-  Bash script to retireve SOH from a Certimus Guralp and send a daily email. Linux mailutils must be installed and configured.
+  Bash script to retireve  State of Health (SOH) from a Certimus Guralp and send a daily email. We have daily report messages with the SOH of a remote seismic station connected to internet by GPRS modem. Linux mailutils must be installed and configured.
+   
 
   Ex: ./check_CertimusSOH.job YS EP05 80.66.245.191 >& ./Trash/YS_EP05.log &
 <img width="908" height="229" alt="Captura desde 2025-12-05 10-43-06" src="https://github.com/user-attachments/assets/32304d3f-973d-446d-94ae-fad0d3e22285" />
@@ -34,7 +34,7 @@ Daily report messages with the State of Health (SOH) of a remote seismic station
 
 - # Taurus_Nanometics/check_TaurusSOH.job
 
-  Bash script to retireve SOH from a Taurus Nanometrics and send a daily email. Linux mailutils must be installed and configured. Linux mailutils must be installed and configured.
+  Bash script to retireve SOH from a Taurus Nanometrics and send a daily email. We have daily report messages with the SOH of a remote seismic station connected to internet by GPRS modem. Linux mailutils must be installed and configured. Linux mailutils must be installed and configured.
 
 
   EX: ./check_TaurusSOH.job YS EP06 87.218.198.245 >& ./Trash/YS_EP06.log &
