@@ -1,0 +1,74 @@
+#!/bin/bash
+
+#   --------------------------------------------------------------------------------------------------
+# MRF 2024-01-11
+#
+# PROBLEM: Cuando la CUBE llena el disco, no graba mas. Con 3Ch a 100sps los 32Gb dan para
+#          unos 280 dias / 9 meses. Por lo tanto cada 6 meses convendia borrar los datos viejos.
+#          Se puede hacer a mano, programando la tarea, o se podria automatizar con un Cron.
+#
+# FACTS:
+#
+# - La CCUBE no sabe como esta el disco de la CUBE, simplemente manda los datos que le llegan. 
+#   No lo ve hasta que lo montamos. Para montar hay que ser root.
+#
+# - Cada vez que montamos el disco, la CUBE para de adquirir y la CCUBE de mandar datos - No los hay.
+#   Por lo tanto conviene hacerlo rapido y no muy a menudo.
+
+# - Al desmontar el disco, la CUBE se reinicia, cargando de nuevo la configuracion, esperando a 
+#   sincronizar GPS, etc.
+# 
+# - Los datos estan todos en uno o varios directorios formato: yymmdd. Ficheros: mmddhhmm.cube_serialnumber
+#   Ex:  ls /mnt/??????/*.???  ---> /mnt/240111/01111109.C6L /mnt/240111/01120000.C6L 01130000.C6L
+#   Funcionando en continuo hace ficheros de un dia - 115 Mb/dia - 01110000.C6L 01120000.C6L etc
+#   Cada vez que se reinicia se crea un directorio nuevo y empieza a escribir ficheros en el.
+# 
+# - Al no ver el disco no podemos programar algo periodico que vaya ejecutando un df, y cuando sobrepase un 
+#   cierto valor borre los datos disco.
+#
+# - Hago que salga mucha informacion por pantalla para controlar con un log lo que hizo.
+#
+# - Hay que programarlo temporalmente - Cada 5-6 meses y programarlo en el crontab de ROOT
+#
+#   --------------------------------------------------------------------------------------------------
+# - Lineas a ejecutar en la CCube:
+#
+#     Ex a mano:  /home/ccube-admin/BorrarDatos_CUBE.job > /home/ccube-admin/log
+#     Ex en cron 6 meses:  0 0 1 */6 * /home/ccube-admin/BorrarDatos_CUBE.job > /home/ccube-admin/log 2>&1
+#   --------------------------------------------------------------------------------------------------
+
+
+# Vemos el status. Al empezar y acabar el status debe indicar:   USB switch state: stream
+ccube-hardware dcube status
+
+# Montamos el disco de la CUBE en la CCUBE.
+ccube-hardware dcube switch config
+
+# Vemos ocupacion de los discos y borramos todos los directorios de 6 digitos de /mnt (unidad de CUBE)
+# Para evitar borrar otros ficheros accidentalmente, borro primero el contenido de los directorios
+# y luego los directorios en si...
+
+date
+df -h
+ls /mnt/*
+echo
+
+# El lugar de borrar todos los ficheros
+#rm -v /mnt/??????/*.???
+# Buscamos los ficheros que sean mas antiguos que 15 dias y los borramos 
+find /mnt/??????/*.??? -type f -follow -mtime +15 -exec rm -v '{}' \;
+
+# Borramos los directorios vacios
+rmdir -v /mnt/??????
+echo
+ls /mnt/*
+df -h
+echo
+
+# Desmontamos el disco y vemos de nuevo el status
+ccube-hardware dcube switch measurement
+ccube-hardware dcube status
+
+# Aprovechamos para sacar algunos logs
+ccube-sensors temperature board
+ccube-sensors voltage all
