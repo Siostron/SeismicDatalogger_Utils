@@ -38,5 +38,5 @@
   Bash script to retireve SOH from a Taurus Nanometrics and send a daily email. We have daily report messages with the SOH of a remote seismic station connected to internet by GPRS modem. Linux mailutils must be installed and configured. Linux mailutils must be installed and configured.
 
 
-  EX: ./check_TaurusSOH.job YS EP06 87.218.198.245 >& ./Trash/YS_EP06.log &
+  EX: ./check_TaurusSOH.job YH EP21 87.218.198.245 >& ./Trash/YH_EP21.log &
 <img width="845" height="219" alt="Captura desde 2025-12-05 10-41-58" src="https://github.com/user-attachments/assets/19ae7e25-74c1-4a24-b6cf-ba4ff3109be1" />
