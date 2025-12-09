@@ -61,4 +61,11 @@
 ---
 >        spd2ms -s -n $NET -l " " -d new -o mseed
 ```
-  
+
+```
+Ex:
+./Spider_PseudoTiempoReal_Geospace.job YY TIAN 108.147.138.195:8080 >& /home/eworm/RingServer/Logs/Descarga_TIAN.log &
+./Spider_PseudoTiempoReal_TC.job FB FIJA 193.177.155.133:80 >& /home/eworm/RingServer/Logs/Descarga_FIJA.log &
+```
+
+
