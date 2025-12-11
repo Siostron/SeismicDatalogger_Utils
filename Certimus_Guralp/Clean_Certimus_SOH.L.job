@@ -1,0 +1,74 @@
+#!/bin/bash
+
+# MRF 2024-05-03 - 2025-12-11
+#
+# Netejo els fitxer SOH.L amb tr -cd '[:print:]\n' 
+# /Lake3/YH_Data/SOH/YH/EP26/SOH.L/YH.EP26.00.SOH.L.2024.117
+# No sempre transforma be tots els camps...
+# Quan no pot llegir be el nombre de satelits usats agafo els visibles -3.
+# si el valor de satelits esta be pero la incertesa es rara la fixo a 100
+# fixo masses a 0 0 0 , doncs no tinc aquesta info.
+
+# Faig dies sencers. Dia de l ultim backup - 1, igual que a la web Labsis
+# aixi queda fins el dia anterior a les 23:59:59
+
+direct="/Lake/Projectes/YH_Data/SOH"
+ncod="YH"
+
+year=2025
+ini=338
+fin=344
+
+for sta in EP01 EP02 EP03 EP04 EP05
+do
+ for ((jlday=$ini; jlday<=$fin; jlday++))
+ do
+    jday=$(echo $jlday | awk '{printf("%03d\n",$0)}')
+    echo "Working on file : $direct/$year/$ncod/$sta/SOH.L/*.$jday ..."
+
+    cat $direct/$year/$ncod/$sta/SOH.L/*.$jday | tr -cd '[:print:]\n' |
+    awk '{if ($1=="Digitizer") {n=0;}
+    if (($1=="Host")&&($2=="name:")) {serial=$3;}
+    if (($1=="SEED")&&($2=="network:")) {net=$3;}
+    if (($1=="SEED")&&($2=="station:")) {site=$3;}
+    if ($1=="Temperature:") {temp=$2;}
+    if (($1=="Relative")&&($2=="humidity:")) {hum=substr($3,1,length($3)-1);}
+    if (($1=="Input")&&($2=="voltage:")) {vol=$3;}
+    if ($1=="Latitude:") {lat=$2;}
+    if ($1=="Longitude:") {lon=$2;}
+    if ($1=="Altitude:") {alt=$2;}
+    if (($1=="Last")&&($2=="timestamp:")) {dateTS=$3; hourTS=$4;}
+    if ($1=="Stability:") {stab=substr($2,1,length($2)-1);}
+	    if ((substr($0,1,3)=="Sat")&&(substr($0,length($0)-8,5)=="used:")) {satU=substr($0,length($0)-2,3);}
+    if (($1=="Satellites")&&($2=="in")&&($3=="view:")) {satV=$4;}
+
+    if ($1=="Sensor0") {n=1;}
+
+    if (n==1) {printf("%s_%s %s %s %s %5.2f %5.2f %5.2f %f %f %7.2f %3.0f %d %d \n",net, site, serial, dateTS, hourTS, temp, hum, vol, lat, lon, alt, stab, satU, satV); n=0;}
+     }' >> $sta-soh.txt
+
+ done
+
+# Canvio el nom per guardar el fitxer.
+
+ dateini=$(head -n3 $sta-soh.txt | awk '{if($3!="Never") {dateini=$3;}} END {print dateini}')  
+ mv -v $sta-soh.txt  "$sta"-"$dateini"_soh.txt
+
+# Netejo i Decimo el fitxer, 1 punt cada 5 min es massa, deixo un punt cada hora.
+
+ awk '{if (($3!="Never")&&($11<1000000)) print $0}' "$sta"-"$dateini"_soh.txt |
+ awk 'BEGIN {hora="00";} {if (substr($4,1,2)!=hora) {print $0; hora=substr($4,1,2);}
+			           }' > "$sta"-"$dateini"_soh_decimat.txt
+
+
+# Preparo els fitxers xy per als SOH de la base de dades Labsis. Fixo a 0.0 les masses, no tenir aquesta info
+# les lectures de satelits usat i incertesa a vegades no es facil del binari tranformat. Comque aixo nomes es pe a la web
+# vaig a saco i quan no ho puc llegir be ho fixo.
+ echo "#Time(date-time)   Voltage(mV) Temperature(C) Voltage#_01/(V) Voltage#_02/(V) Voltage#_03/(V) NumSatellites Uncertainty(ns)" > "$sta"_"$dateini"_soh.xy
+
+ awk '{if ($12==0) {printf("%s %s.000 %d %f 0.0 0.0 0.0 %d %d\n",$3,$4,$7*1000,$5,$13-3,$11);}
+       if (($12>0)&&($11<=1000)) {printf("%s %s.000 %d %f 0.0 0.0 0.0 %d %d\n",$3,$4,$7*1000,$5,$12,$11);}
+       if (($12>0)&&($11>1000)) {printf("%s %s.000 %d %f 0.0 0.0 0.0 %d 100\n",$3,$4,$7*1000,$5,$12);}
+       }' "$sta"-"$dateini"_soh_decimat.txt >> "$sta"_"$dateini"_soh.xy
+
+done

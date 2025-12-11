@@ -1,0 +1,89 @@
+#!/bin/bash
+
+# ----------------------------------------------------------------------------------------------------
+# MRF - 2023-11-07 - mruiz@geo3bcn.csic.es
+# ----------------------------------------------------------------------------------------------------
+#
+# Fem servir el log que hi ha a la tarjeta MicroSd (un registre cada 20 min): status.log
+# Es pot descarregar amb:    curl "http://19x.1xx.1x3.xx0/sd/status.log" > status.log
+#
+# A http://19x.1xx.1x3.xx0/status.txt - Tenim la informacio puntual en aquest l'instant.
+#
+# El fitxer status.log te finals de carro ^M al fina lde cada linea -carriage return- que 
+# es podrien netejar amb dos2unix: sudo apt-get install dos2unix
+#
+# Pero tambe te linies amb ^@ i caracters no imprimibles que fan que el grep o awk
+# pensi que es un binari.
+# 
+# Netejo tots el caracters no imprimibles amb el comando linux TR
+# https://geekland.eu/uso-del-comando-tr-en-linux-y-unix-con-ejemplos
+#
+# Para eliminar la totalidad de caracteres ilegibles lo pueden hacer mediante 
+# la opción [:print:] del siguiente modo:
+#
+# tr -cd '[:print:]\n' < status.log > q
+#
+# Doncs encara que faci servir el dos2unix i forci binari files: dos2unix -f status.log
+# continua havent-hi linees rares tipus:  ^@ªjº***** 2023-10-31 08:02:49 *****
+#
+# ----------------------------------------------------------------------------------------------------
+
+infile="./status.log"
+modfile="./status.lst"
+outfile="./Certimus_soh.txt"
+
+echo -e "\n Working on files: $infile ..."
+echo -e "\n  Cleaning log file to $modfile \n  and Writing output to $outfile\n"
+
+tr -cd '[:print:]\n' < $infile > $modfile 
+
+echo "Net Site    s/n       Time Stamp           Time Lock       Temp  Hum   Volt     Lat      Lon        Z  GPS_Stb SatU SatV Disc_Used Disc_Total  %Used" > $outfile
+
+awk '{if ($1=="Digitizer") {n=0;}
+if (($1=="Host")&&($2=="name:")) {serial=$3;}
+if (($1=="SEED")&&($2=="network:")) {net=$3;}
+if (($1=="SEED")&&($2=="station:")) {site=$3;}
+if ($1=="Temperature:") {temp=$2;}
+if (($1=="Relative")&&($2=="humidity:")) {hum=substr($3,1,length($3)-1);}
+if (($1=="Input")&&($2=="voltage:")) {vol=$3;}
+if ($1=="Latitude:") {lat=$2;}
+if ($1=="Longitude:") {lon=$2;}
+if ($1=="Altitude:") {alt=$2;}
+if (($1=="Last")&&($2=="timestamp:")) {dateTS=$3; hourTS=$4;}
+if (($1=="Last")&&($2=="lock")&&($3=="time:")) {dateLK=$4; hourLK=$5;}
+if ($1=="Stability:") {stab=substr($2,1,length($2)-1);}
+if (($1=="Satellites")&&($2=="used:")) {satU=$3;}
+if (($1=="Satellites")&&($2=="in")&&($3=="view:")) {satV=$4;}
+if ($1=="Capacity:") {diskC=$2;}
+if ($1=="Used:") {diskU=$2;}
+
+if ($1=="Sensor0") {n=1;}
+
+if (n==1) {printf("%s  %s %s %s %s %s %s %5.2f %5.2f %5.2f %f %f %7.2f  %3.0f %4d %4d  %9d  %9d  %6.2f\n",net, site, serial, dateTS, hourTS, dateLK, hourLK, temp, hum, vol, lat, lon, alt, stab, satU, satV, diskU, diskC, (diskU/diskC)*100);
+           n=0;}
+     }' $modfile >> $outfile
+
+#  - Output:
+# Net Site    s/n       Time Stamp           Time Lock       Temp  Hum   Volt     Lat      Lon        Z  GPS_Stb SatU SatV Disc_Used Disc_Total  %Used
+# GC  TAUL CERT-5866 2023-11-07 13:29:06 2023-11-07 13:16:29 28.74 44.95 13.03 41.384600 2.118800   72.40  100    5   11        716  122159104    0.00
+
+# Preparo els fitxers _soh.xy per a fer els State of health SQL
+
+sta=$(awk '{if (NR==2) {printf("%s\n",$2);}}' $outfile)
+date=$(awk '{if (NR==2) {printf("%s\n",$4);}}' $outfile)
+
+# Renombro els fitxers
+cp -v $infile "$sta"_"$date"_status.log
+mv -v $modfile "$sta"_"$date"_status.lst
+mv -v $outfile "$sta"_"$date"_Certimus_soh.txt
+
+# Preparo els fitxers xy per als SOH de la base de dades Labsis. Fixo a 0.0 les masses, no teni aquesta info, i a 100ns la incertesa, aquesta info esta al fitxers
+# mseed GPS, caldria veure com fusion les dies infos. Potser no cal matar-se.
+echo "#Time(date-time)   Voltage(mV) Temperature(C) Voltage#_01/(V) Voltage#_02/(V) Voltage#_03/(V) NumSatellites Uncertainty(ns)" > "$sta"_"$date"_soh.xy
+awk '{if (NR>1) printf("%s %s.000 %d %f 0.0 0.0 0.0 %d 1000\n",$4,$5,$10*1000,$8,$15)}' "$sta"_"$date"_Certimus_soh.txt >> "$sta"_"$date"_soh.xy
+
+# - Sortida:
+#  Time(date-time)   Voltage(mV) Temperature(C) Voltage#_01/(V) Voltage#_02/(V) Voltage#_03/(V) NumSatellites Uncertainty(ns)
+# 2023-03-09 08:09:07.000      12172     21.9900   0.0 0.0 0.0         9 100
+# 2023-03-09 09:09:11.000      12298     22.3500   0.0 0.0 0.0        10 100
+
